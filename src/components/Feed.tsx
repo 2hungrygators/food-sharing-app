@@ -76,15 +76,15 @@ const Feed: React.FC = () => {
   const filters = ['All', 'Breakfast', 'Lunch', 'Dinner', 'Snack'];
 
   return (
-    <div className="flex-1 p-10 flex flex-col gap-6 overflow-y-auto h-screen">
-      <header className="flex justify-between items-end mb-5">
-        <h1 className="text-3xl font-normal">Circle Feed</h1>
-        <div className="flex gap-3">
+    <div className="flex-1 p-4 sm:p-10 flex flex-col gap-6 overflow-y-auto h-full">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-5">
+        <h1 className="text-2xl sm:text-3xl font-normal">Circle Feed</h1>
+        <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-2 sm:pb-0 w-full sm:w-auto no-scrollbar">
           {filters.map(f => (
             <span
               key={f}
               onClick={() => setFilter(f)}
-              className={`filter-pill ${filter === f ? 'active' : ''}`}
+              className={`filter-pill whitespace-nowrap ${filter === f ? 'active' : ''}`}
             >
               {f}
             </span>
@@ -95,7 +95,7 @@ const Feed: React.FC = () => {
       {loading ? (
         <div className="flex justify-center py-20 text-text-dim">Loading feed...</div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           <AnimatePresence mode="popLayout">
             {posts.map((post) => (
               <motion.div

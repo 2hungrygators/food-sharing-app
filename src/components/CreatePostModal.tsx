@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
-import { X, Camera, Image as ImageIcon } from 'lucide-react';
+import { X, Camera, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface CreatePostModalProps {
@@ -17,6 +18,42 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose }) =>
   const [mood, setMood] = useState('happy');
   const [caption, setCaption] = useState('');
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file.');
+      return;
+    }
+
+    setLoading(true);
+    const storageRef = ref(storage, `meals/${user.uid}/${Date.now()}_${file.name}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    uploadTask.on('state_changed', 
+      (snapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        setUploadProgress(progress);
+      }, 
+      (error) => {
+        console.error("Upload failed:", error);
+        alert("Upload failed. Please try again.");
+        setLoading(false);
+        setUploadProgress(null);
+      }, 
+      async () => {
+        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+        setImageUrl(downloadURL);
+        setLoading(false);
+        setUploadProgress(null);
+      }
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +93,7 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose }) =>
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -69,38 +106,78 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose }) =>
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="relative w-full max-w-xl bg-card-bg border border-border p-8 rounded-sm shadow-2xl"
+            className="relative w-full max-w-xl bg-card-bg border border-border p-6 sm:p-8 rounded-sm shadow-2xl max-h-[90vh] overflow-y-auto"
           >
             <button onClick={onClose} className="absolute top-4 right-4 text-text-dim hover:text-text-main">
               <X size={24} />
             </button>
 
-            <h2 className="text-2xl font-serif mb-8">Share a Meal</h2>
+            <h2 className="text-2xl font-serif mb-6 sm:mb-8">Share a Meal</h2>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <label className="block text-[10px] uppercase tracking-widest text-text-dim">Image URL</label>
-                <div className="flex gap-2">
-                  <input
-                    type="url"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="https://images.unsplash.com/..."
-                    className="flex-1 bg-bg border border-border p-3 text-sm focus:border-accent outline-none"
-                    required
-                  />
-                  <button type="button" className="bg-border p-3 text-text-dim hover:text-text-main">
-                    <Camera size={20} />
+                <label className="block text-[10px] uppercase tracking-widest text-text-dim">Meal Photo</label>
+                
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleFileUpload} 
+                  accept="image/*" 
+                  className="hidden" 
+                />
+
+                {!imageUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={loading}
+                    className="w-full aspect-video bg-bg border border-dashed border-border flex flex-col items-center justify-center gap-3 hover:border-accent transition-colors group"
+                  >
+                    {loading ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="animate-spin text-accent" size={32} />
+                        <span className="text-[10px] uppercase tracking-widest text-accent">
+                          Uploading {uploadProgress ? `${Math.round(uploadProgress)}%` : ''}
+                        </span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="w-12 h-12 rounded-full bg-border flex items-center justify-center group-hover:bg-accent/10 transition-colors">
+                          <Camera className="text-text-dim group-hover:text-accent" size={24} />
+                        </div>
+                        <span className="text-[10px] uppercase tracking-widest text-text-dim">Tap to take or upload photo</span>
+                      </>
+                    )}
                   </button>
-                </div>
-                {imageUrl && (
-                  <div className="mt-4 aspect-video bg-bg border border-border rounded-sm overflow-hidden">
+                ) : (
+                  <div className="relative aspect-video bg-bg border border-border rounded-sm overflow-hidden">
                     <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    <button 
+                      type="button"
+                      onClick={() => setImageUrl('')}
+                      className="absolute top-2 right-2 bg-black/60 p-1.5 rounded-full text-white hover:bg-black"
+                    >
+                      <X size={16} />
+                    </button>
                   </div>
                 )}
+                
+                <div className="flex items-center gap-2 py-2">
+                  <div className="h-px flex-1 bg-border"></div>
+                  <span className="text-[10px] uppercase tracking-widest text-text-dim">Or use URL</span>
+                  <div className="h-px flex-1 bg-border"></div>
+                </div>
+
+                <input
+                  type="url"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="https://images.unsplash.com/..."
+                  className="w-full bg-bg border border-border p-3 text-sm focus:border-accent outline-none"
+                />
               </div>
 
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="block text-[10px] uppercase tracking-widest text-text-dim">Meal Type</label>
                   <select
