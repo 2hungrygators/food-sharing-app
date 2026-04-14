@@ -1,0 +1,6 @@
+{
+  "name": "BiteCheck",
+  "description": "A social meal accountability app to track eating habits with friends.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": []
+}

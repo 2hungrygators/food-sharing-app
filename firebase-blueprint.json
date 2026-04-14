@@ -1,0 +1,103 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Stores user profile information and statistics.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "bio": { "type": "string" },
+        "streak": { "type": "number" },
+        "longestStreak": { "type": "number" },
+        "lastPostDate": { "type": "string", "format": "date-time" },
+        "totalLikes": { "type": "number" },
+        "totalDislikes": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "displayName"]
+    },
+    "MealPost": {
+      "title": "Meal Post",
+      "description": "A meal shared by a user.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "authorUid": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorPhoto": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "tag": { "type": "string", "enum": ["Breakfast", "Lunch", "Dinner", "Snack"] },
+        "mood": { "type": "string", "enum": ["happy", "neutral", "sad"] },
+        "caption": { "type": "string" },
+        "likeCount": { "type": "number" },
+        "dislikeCount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "groupId": { "type": "string" }
+      },
+      "required": ["authorUid", "imageUrl", "tag", "mood", "createdAt"]
+    },
+    "Reaction": {
+      "title": "Post Reaction",
+      "description": "A reaction (like/dislike) to a post.",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["like", "dislike"] },
+        "userUid": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["type", "userUid"]
+    },
+    "Connection": {
+      "title": "User Connection",
+      "description": "Tracks following relationships between users.",
+      "type": "object",
+      "properties": {
+        "followerUid": { "type": "string" },
+        "followingUid": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["followerUid", "followingUid"]
+    },
+    "Group": {
+      "title": "Accountability Group",
+      "description": "A private group for sharing meals.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "adminUid": { "type": "string" },
+        "members": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "adminUid"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile data."
+    },
+    "/posts/{postId}": {
+      "schema": "MealPost",
+      "description": "Public or group meal posts."
+    },
+    "/posts/{postId}/reactions/{userId}": {
+      "schema": "Reaction",
+      "description": "Reactions to a specific post."
+    },
+    "/users/{userId}/following/{targetUserId}": {
+      "schema": "Connection",
+      "description": "Users that the current user is following."
+    },
+    "/users/{userId}/followers/{targetUserId}": {
+      "schema": "Connection",
+      "description": "Users following the current user."
+    },
+    "/groups/{groupId}": {
+      "schema": "Group",
+      "description": "Private accountability groups."
+    }
+  }
+}

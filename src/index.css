@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Georgia", serif;
+  --font-sans: "Helvetica Neue", Arial, sans-serif;
+  
+  --color-bg: #0A0A0A;
+  --color-card-bg: #141414;
+  --color-accent: #BFA181;
+  --color-text-main: #E5E5E5;
+  --color-text-dim: #888888;
+  --color-border: #262626;
+}
+
+@layer base {
+  body {
+    @apply bg-bg text-text-main font-sans antialiased;
+  }
+  
+  h1, h2, h3, .serif {
+    @apply font-serif;
+  }
+}
+
+@layer components {
+  .nav-item {
+    @apply px-0 py-3 text-sm tracking-[0.1em] uppercase text-text-dim cursor-pointer transition-colors;
+  }
+  
+  .nav-item.active {
+    @apply text-text-main font-semibold border-r-2 border-accent;
+  }
+  
+  .filter-pill {
+    @apply px-4 py-1.5 border border-border rounded-full text-xs text-text-dim cursor-pointer transition-all;
+  }
+  
+  .filter-pill.active {
+    @apply bg-accent text-bg border-accent;
+  }
+  
+  .post-card {
+    @apply bg-card-bg border border-border rounded overflow-hidden relative;
+  }
+  
+  .meal-tag {
+    @apply absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm px-3 py-1 rounded-sm text-[10px] uppercase tracking-[0.1em] text-white;
+  }
+  
+  .mood-badge {
+    @apply absolute top-3 right-3 bg-card-bg w-8 h-8 rounded-full flex items-center justify-center text-lg;
+  }
+  
+  .stat-label {
+    @apply text-[11px] uppercase tracking-[0.2em] text-text-dim mb-4;
+  }
+  
+  .streak-num {
+    @apply font-serif text-5xl text-accent;
+  }
+}
