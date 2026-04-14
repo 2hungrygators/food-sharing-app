@@ -91,13 +91,23 @@ service cloud.firestore {
       }
     }
 
+    function isValidCounterUpdate() {
+      // Allow updating ONLY likeCount or dislikeCount by exactly 1
+      let affectedKeys = request.resource.data.diff(resource.data).affectedKeys();
+      return affectedKeys.hasOnly(['likeCount']) || affectedKeys.hasOnly(['dislikeCount']);
+    }
+
     match /posts/{postId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && isValidPost(request.resource.data);
-      allow update: if isAuthenticated() && 
-                    resource.data.authorUid == request.auth.uid && 
-                    request.time < resource.data.createdAt + duration.value(15, 'm') &&
-                    isValidPost(request.resource.data);
+      allow update: if isAuthenticated() && (
+        // Author can edit within 15 mins
+        (resource.data.authorUid == request.auth.uid && 
+         request.time < resource.data.createdAt + duration.value(15, 'm') &&
+         isValidPost(request.resource.data)) ||
+        // Others can only update counters
+        isValidCounterUpdate()
+      );
       allow delete: if isAuthenticated() && 
                     resource.data.authorUid == request.auth.uid && 
                     request.time < resource.data.createdAt + duration.value(15, 'm');

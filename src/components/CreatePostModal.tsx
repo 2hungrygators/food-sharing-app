@@ -19,15 +19,17 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose }) =>
   const [caption, setCaption] = useState('');
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
+    setError(null);
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Please upload an image file.');
+      setError('Please upload an image file.');
       return;
     }
 
@@ -40,9 +42,9 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose }) =>
         const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
         setUploadProgress(progress);
       }, 
-      (error) => {
-        console.error("Upload failed:", error);
-        alert("Upload failed. Please try again.");
+      (err) => {
+        console.error("Upload failed:", err);
+        setError("Upload failed. Please try again.");
         setLoading(false);
         setUploadProgress(null);
       }, 
@@ -113,6 +115,12 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose }) =>
             </button>
 
             <h2 className="text-2xl font-serif mb-6 sm:mb-8">Share a Meal</h2>
+
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 p-3 mb-6 text-red-500 text-[10px] uppercase tracking-widest">
+                {error}
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">

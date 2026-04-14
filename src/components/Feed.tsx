@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, orderBy, onSnapshot, limit, where, doc, setDoc, deleteDoc, serverTimestamp, increment } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, limit, where, doc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
 import { ThumbsUp, ThumbsDown, Clock } from 'lucide-react';
@@ -52,22 +52,43 @@ const Feed: React.FC = () => {
     const postRef = doc(db, 'posts', postId);
     
     try {
-      const reactionSnap = await onSnapshot(reactionRef, async (snap) => {
-        // This is a bit complex for a simple reaction, but let's try to follow the rules
-        // In a real app we'd use a transaction or cloud function
+      await runTransaction(db, async (transaction) => {
+        const reactionDoc = await transaction.get(reactionRef);
+        const postDoc = await transaction.get(postRef);
+        
+        if (!postDoc.exists()) return;
+        
+        const postData = postDoc.data();
+        const existingReaction = reactionDoc.exists() ? reactionDoc.data() : null;
+        
+        if (existingReaction) {
+          if (existingReaction.type === type) {
+            // Remove reaction
+            transaction.delete(reactionRef);
+            transaction.update(postRef, {
+              [`${type}Count`]: Math.max(0, (postData[`${type}Count`] || 0) - 1)
+            });
+          } else {
+            // Switch reaction
+            const oldType = existingReaction.type;
+            transaction.update(reactionRef, { type, createdAt: serverTimestamp() });
+            transaction.update(postRef, {
+              [`${oldType}Count`]: Math.max(0, (postData[`${oldType}Count`] || 0) - 1),
+              [`${type}Count`]: (postData[`${type}Count`] || 0) + 1
+            });
+          }
+        } else {
+          // New reaction
+          transaction.set(reactionRef, {
+            type,
+            userUid: user.uid,
+            createdAt: serverTimestamp()
+          });
+          transaction.update(postRef, {
+            [`${type}Count`]: (postData[`${type}Count`] || 0) + 1
+          });
+        }
       });
-      
-      // Simplified for now:
-      await setDoc(reactionRef, {
-        type,
-        userUid: user.uid,
-        createdAt: serverTimestamp()
-      });
-      
-      await setDoc(postRef, {
-        [`${type}Count`]: increment(1)
-      }, { merge: true });
-      
     } catch (error) {
       console.error("Error reacting to post:", error);
     }
